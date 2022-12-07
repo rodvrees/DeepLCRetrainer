@@ -39,7 +39,7 @@ session = InteractiveSession(config=config)
 import tensorflow as tf
 tf.__version__
 
-__version__ = 2.0
+__version__ = 0.1
 
 def parse_arguments(gui=False):
     """Read arguments from the CLI or GUI."""
@@ -121,7 +121,7 @@ def parse_arguments(gui=False):
         default=128,
         widget="IntegerField",
         metavar="batch_size",
-        gooey_options={"min": 64, "max": 10240, "increment": 64},
+        gooey_options={"min": 1, "max": 102400, "increment": 64},
         help=(
             "batch_size"
         )
