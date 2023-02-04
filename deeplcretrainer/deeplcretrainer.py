@@ -20,9 +20,16 @@ import importlib.resources
 from tensorflow.keras.layers import ReLU
 import importlib
 
-from gooey import Gooey, local_resource_path
+try:
+    from gooey import Gooey, local_resource_path
+except ImportError:
+    pass
 
-import cnn_functions
+try:
+    from deeplcretrainer import cnn_functions
+except ImportError:
+    import cnn_functions
+
 import itertools
 import hashlib
 
@@ -39,7 +46,7 @@ session = InteractiveSession(config=config)
 import tensorflow as tf
 tf.__version__
 
-__version__ = 0.1
+from . import __version__
 
 def parse_arguments(gui=False):
     """Read arguments from the CLI or GUI."""
@@ -150,6 +157,9 @@ def retrain(
         ratio_valid=0.95,
         freeze_layers=False,
         costum_modification_file=None,
+        plot_results=False,
+        write_csv_results=False,
+        freeze_after_concat=0,
         outpath="./",
         a_blocks=[3],
         a_kernel=[2,4,8],
@@ -186,6 +196,10 @@ def retrain(
     fit_hc = True
     use_correction_factor = True
     hc_str = "_hc"
+    mods_loc_optimized_all = []
+
+    if type(datasets) == str:
+        datasets = [datasets]
 
     for dataset_name in datasets:
         df = cnn_functions.read_infile(dataset_name)
@@ -206,6 +220,7 @@ def retrain(
         y_test = y_test/correction_factor
         
         mods_optimized = []
+        mods_loc_optimized = []
         
         for p in params:
             a_blocks, a_kernel,a_max_pool,a_filters_start,a_stride,b_blocks,b_kernel,b_max_pool,b_filters_start,b_stride,global_neurons,global_num_dens,regularizer_val = p
@@ -223,14 +238,14 @@ def retrain(
                                 matched_mod,
                                 custom_objects={'<lambda>': lrelu}
                             )
-                
-                set_train_to = False
+
                 if freeze_layers:
-                    
+                    set_train_to = False
                     for layer in model.layers:
-                        print("Freezing layers")
                         if "concatenate" in layer.name:
-                            set_train_to = True
+                            if freeze_after_concat < 1:
+                                set_train_to = True
+                            freeze_after_concat -= 1
                         layer.trainable = set_train_to
             else:
                 model = cnn_functions.init_model(
@@ -274,70 +289,81 @@ def retrain(
 
             mods_optimized.append(load_model(mod_name,
                                             custom_objects = {'<lambda>': lrelu}))
+
+            mods_loc_optimized.append(mod_name)
         
-        cnn_functions.write_preds(df_train, 
-                                    X_train,
-                                    X_train_sum,
-                                    X_train_global,
-                                    X_train_hc,
+        if write_csv_results:
+            cnn_functions.write_preds(df_train, 
+                                        X_train,
+                                        X_train_sum,
+                                        X_train_global,
+                                        X_train_hc,
+                                        mods_optimized,
+                                        fit_hc=fit_hc,
+                                        correction_factor=correction_factor,
+                                        outfile_name=os.path.join(outpath,"%s_full%s_train.csv" % (os.path.basename(dataset_name).replace(".csv",""),hc_str)))
+            
+            cnn_functions.write_preds(df_valid, 
+                                    X_valid,
+                                    X_valid_sum,
+                                    X_valid_global,
+                                    X_valid_hc,
                                     mods_optimized,
                                     fit_hc=fit_hc,
                                     correction_factor=correction_factor,
-                                    outfile_name=os.path.join(outpath,"%s_full%s_train.csv" % (os.path.basename(dataset_name).replace(".csv",""),hc_str)))
+                                    outfile_name=os.path.join(outpath,"%s_full%s_valid.csv" % (os.path.basename(dataset_name).replace(".csv",""),hc_str)))
+                                    
+            perf = cnn_functions.write_preds(df_test, 
+                                    X_test,
+                                    X_test_sum,
+                                    X_test_global,
+                                    X_test_hc,
+                                    mods_optimized,
+                                    fit_hc=fit_hc,
+                                    correction_factor=correction_factor,
+                                    outfile_name=os.path.join(outpath,"%s_full%s_test.csv" % (os.path.basename(dataset_name).replace(".csv",""),hc_str)))
+
+        if plot_results:
+            cnn_functions.plot_preds(X_train,
+                    X_train_sum,
+                    X_train_global,
+                    X_train_hc,
+                    y_train,
+                    mods_optimized,
+                    fit_hc=fit_hc,
+                    correction_factor=correction_factor,
+                    file_save=os.path.join(outpath,"%s_full_hc_train.png" % (os.path.basename(dataset_name).replace(".csv",""))),
+                    plot_title="%s_full%s_train" % (os.path.basename(dataset_name).replace(".csv",""),hc_str))
+
+            cnn_functions.plot_preds(X_valid,
+                    X_valid_sum,
+                    X_valid_global,
+                    X_valid_hc,
+                    y_valid,
+                    mods_optimized,
+                    fit_hc=fit_hc,
+                    correction_factor=correction_factor,
+                    file_save=os.path.join(outpath,"%s_full_hc_valid.png" % (os.path.basename(dataset_name).replace(".csv",""))),
+                    plot_title="%s_full%s_valid" % (os.path.basename(dataset_name).replace(".csv",""),hc_str))
+
+
+            cnn_functions.plot_preds(X_test,
+                    X_test_sum,
+                    X_test_global,
+                    X_test_hc,
+                    y_test,
+                    mods_optimized,
+                    fit_hc=fit_hc,
+                    correction_factor=correction_factor,
+                    file_save=os.path.join(outpath,"%s_full_hc_test.png" % (os.path.basename(dataset_name).replace(".csv",""))),
+                    plot_title="%s_full%s_test" % (os.path.basename(dataset_name).replace(".csv",""),hc_str))
         
-        cnn_functions.write_preds(df_valid, 
-                                X_valid,
-                                X_valid_sum,
-                                X_valid_global,
-                                X_valid_hc,
-                                mods_optimized,
-                                fit_hc=fit_hc,
-                                correction_factor=correction_factor,
-                                outfile_name=os.path.join(outpath,"%s_full%s_valid.csv" % (os.path.basename(dataset_name).replace(".csv",""),hc_str)))
-                                
-        perf = cnn_functions.write_preds(df_test, 
-                                X_test,
-                                X_test_sum,
-                                X_test_global,
-                                X_test_hc,
-                                mods_optimized,
-                                fit_hc=fit_hc,
-                                correction_factor=correction_factor,
-                                outfile_name=os.path.join(outpath,"%s_full%s_test.csv" % (os.path.basename(dataset_name).replace(".csv",""),hc_str)))
+        mods_loc_optimized_all.append(mods_loc_optimized)
 
-        cnn_functions.plot_preds(X_train,
-                X_train_sum,
-                X_train_global,
-                X_train_hc,
-                y_train,
-                mods_optimized,
-                fit_hc=fit_hc,
-                correction_factor=correction_factor,
-                file_save=os.path.join(outpath,"%s_full_hc_train.png" % (os.path.basename(dataset_name).replace(".csv",""))),
-                plot_title="%s_full%s_train" % (os.path.basename(dataset_name).replace(".csv",""),hc_str))
-
-        cnn_functions.plot_preds(X_valid,
-                X_valid_sum,
-                X_valid_global,
-                X_valid_hc,
-                y_valid,
-                mods_optimized,
-                fit_hc=fit_hc,
-                correction_factor=correction_factor,
-                file_save=os.path.join(outpath,"%s_full_hc_valid.png" % (os.path.basename(dataset_name).replace(".csv",""))),
-                plot_title="%s_full%s_valid" % (os.path.basename(dataset_name).replace(".csv",""),hc_str))
-
-
-        cnn_functions.plot_preds(X_test,
-                X_test_sum,
-                X_test_global,
-                X_test_hc,
-                y_test,
-                mods_optimized,
-                fit_hc=fit_hc,
-                correction_factor=correction_factor,
-                file_save=os.path.join(outpath,"%s_full_hc_test.png" % (os.path.basename(dataset_name).replace(".csv",""))),
-                plot_title="%s_full%s_test" % (os.path.basename(dataset_name).replace(".csv",""),hc_str))
+    if len(mods_loc_optimized_all) == 1:
+        return mods_loc_optimized_all[0]
+    else:
+        return mods_loc_optimized_all[0]
 
 @Gooey(
     program_name="DeepLC re-tR-ainer",
