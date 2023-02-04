@@ -29,7 +29,7 @@ except ImportError:
         default_size=(720, 790),
         monospace_display=True
     ):
-        def wrapper():
+        def wrapper(f):
             return ""
         return wrapper
 
