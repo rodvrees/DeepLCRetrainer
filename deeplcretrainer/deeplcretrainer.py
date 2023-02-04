@@ -25,11 +25,12 @@ try:
     from gooey import GooeyParser
 except ImportError:
     def Gooey(
+        func,
         program_name="DeepLC re-tR-ainer",
         default_size=(720, 790),
         monospace_display=True
     ):
-        pass
+        return func
 
 try:
     from deeplcretrainer import cnn_functions
