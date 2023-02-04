@@ -24,7 +24,12 @@ try:
     from gooey import Gooey, local_resource_path
     from gooey import GooeyParser
 except ImportError:
-    pass
+    def Gooey(
+        program_name="DeepLC re-tR-ainer",
+        default_size=(720, 790),
+        monospace_display=True
+    ):
+        pass
 
 try:
     from deeplcretrainer import cnn_functions
