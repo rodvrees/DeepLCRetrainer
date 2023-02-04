@@ -22,6 +22,7 @@ import importlib
 
 try:
     from gooey import Gooey, local_resource_path
+    from gooey import GooeyParser
 except ImportError:
     pass
 
@@ -35,8 +36,6 @@ import hashlib
 
 import sys
 from argparse import HelpFormatter
-from gooey import GooeyParser
-
 import os
 
 config = ConfigProto()
