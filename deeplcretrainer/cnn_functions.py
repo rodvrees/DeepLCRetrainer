@@ -49,7 +49,7 @@ from tensorflow.keras.callbacks import ModelCheckpoint
 from tensorflow.keras.models import load_model
 from tensorflow.keras import initializers
 from deeplc.feat_extractor import FeatExtractor
-from deeplc import DeepLC
+import deeplc
 #import xgboost as xgb
 from tensorflow.keras.layers import BatchNormalization
 
@@ -353,7 +353,7 @@ def get_feat_df(df,aa_comp={},costum_modification_file=None,num_cores=False,igno
                                 verbose = True,
                                 ignore_mods = ignore_mods)
 
-    pepper = DeepLC(
+    pepper = deeplc.DeepLC(
                 f_extractor=f_extractor,
                 cnn_model=True,
                 n_jobs=num_cores,
