@@ -351,7 +351,7 @@ def retrain(
                 )
 
             mods_optimized.append(
-                load_model(h5py(mod_name), custom_objects={"<lambda>": lrelu})
+                load_model(h5py.File(mod_name), custom_objects={"<lambda>": lrelu})
             )
 
             mods_loc_optimized.append(mod_name)
