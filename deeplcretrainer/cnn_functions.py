@@ -2,8 +2,8 @@
 Main code used for evaluating DeepLC
 """
 
-__author__ = ["Robbin Bouwmeester", "Ralf Gabriels"]
-__credits__ = ["Robbin Bouwmeester", "Ralf Gabriels", "Prof. Lennart Martens", "Sven Degroeve"]
+__author__ = ["Robbin Bouwmeester", "Arthur Declercq", "Ralf Gabriels"]
+__credits__ = ["Robbin Bouwmeester", "Ralf Gabriels", "Arthur Declercq", "Prof. Lennart Martens", "Prof. Sven Degroeve"]
 __license__ = "Apache License, Version 2.0"
 __maintainer__ = ["Robbin Bouwmeester", "Ralf Gabriels"]
 __email__ = ["Robbin.Bouwmeester@ugent.be", "Ralf.Gabriels@ugent.be"]
@@ -52,7 +52,11 @@ from deeplc.feat_extractor import FeatExtractor
 import deeplc
 #import xgboost as xgb
 from tensorflow.keras.layers import BatchNormalization
-
+from psm_utils.io.peptide_record import peprec_to_proforma
+from psm_utils.psm import PSM
+from psm_utils.psm_list import PSMList
+from psm_utils.io import read_file
+from psm_utils.io import write_file
 import scipy
 
 import tensorflow as tf
@@ -324,7 +328,7 @@ def count_aa(df,
 def add_count_aa(df):
     df_aa = count_aa(df).fillna(0)
 
-def get_feat_df(df,aa_comp={},costum_modification_file=None,num_cores=False,ignore_mods=False,standard_feat = False):
+def get_feat_df(df=None,psm_list=None,aa_comp={},costum_modification_file=None,num_cores=False,ignore_mods=False,standard_feat = False):
     if not num_cores: num_cores = multiprocessing.cpu_count()
     num_cores = 1
     if costum_modification_file:
@@ -332,23 +336,13 @@ def get_feat_df(df,aa_comp={},costum_modification_file=None,num_cores=False,igno
             costum_modification_file = costum_modification_file[0]
         if costum_modification_file.endswith(".csv"):
             costum_modification_file = os.path.dirname(os.path.abspath(costum_modification_file))
-        f_extractor = FeatExtractor(add_sum_feat=False,
-                                    ptm_add_feat=False,
-                                    ptm_subtract_feat=False,
-                                    #standard_feat = False,
-                                    chem_descr_feat = False,
-                                    add_comp_feat = False,
-                                    cnn_feats = True,
-                                    verbose = True,
-                                    lib_path_mod=costum_modification_file,
-                                    ignore_mods = ignore_mods)
+        f_extractor = FeatExtractor(
+                                cnn_feats = True,
+                                verbose = True,
+                                lib_path_mod=costum_modification_file,
+                                ignore_mods = ignore_mods)
     else:
-        f_extractor = FeatExtractor(add_sum_feat=False,
-                                ptm_add_feat=False,
-                                ptm_subtract_feat=False,
-                                #standard_feat = False,
-                                chem_descr_feat = False,
-                                add_comp_feat = False,
+        f_extractor = FeatExtractor(
                                 cnn_feats = True,
                                 verbose = True,
                                 ignore_mods = ignore_mods)
@@ -359,9 +353,30 @@ def get_feat_df(df,aa_comp={},costum_modification_file=None,num_cores=False,igno
                 n_jobs=num_cores,
                 verbose=True)
 
-    df_feat = pepper.do_f_extraction_pd_parallel(df)
-    df = pd.concat([df,df_feat],axis=1)
-    return df
+    if type(df) == pd.core.frame.DataFrame:
+        list_of_psms = []
+        for seq,mod,id,tr in zip(df["seq"],df["modifications"],df.index,df["tr"]):
+            list_of_psms.append(PSM(peptidoform=peprec_to_proforma(seq,mod),spectrum_id=id,retention_time=tr))
+        psm_list = PSMList(psm_list=list_of_psms)
+
+    df_feat = pepper.do_f_extraction_psm_list_parallel(psm_list)
+    df_feat["matrix"] = pd.Series(df_feat["matrix"])
+    df_feat["matrix_sum"] = pd.Series(df_feat["matrix_sum"])
+    df_feat["matrix_all"] = pd.Series(df_feat["matrix_all"])
+    df_feat["pos_matrix"] = pd.Series(df_feat["pos_matrix"])
+    df_feat["matrix_hc"] = pd.Series(df_feat["matrix_hc"])
+    
+
+    df_feat = pd.concat([df_feat["matrix"],df_feat["matrix_sum"],df_feat["matrix_all"],df_feat["pos_matrix"],df_feat["matrix_hc"]],axis=1)
+    df_feat.columns = ["matrix","matrix_sum","matrix_all","pos_matrix","matrix_hc"]
+    df_feat.index = [psm.spectrum_id for psm in psm_list]
+    df_feat["tr"] = [psm.retention_time for psm in psm_list]
+
+    #df_feat = pd.DataFrame(df_feat,index=df.index)
+    
+    #df = pd.concat([df,df_feat],axis=1)
+    
+    return df_feat
 
 
 def split_seq(a,
@@ -714,6 +729,7 @@ def train_test(df,
 def get_feat_matrix(df):
     X = np.stack(df["matrix"])
     X_sum = np.stack(df["matrix_sum"])
+    
     X_global = np.concatenate((np.stack(df["matrix_all"]),
                                np.stack(df["pos_matrix"])),
                                axis=1)
