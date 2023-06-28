@@ -13,6 +13,7 @@ from tensorflow.compat.v1 import InteractiveSession
 from tensorflow.keras.callbacks import ModelCheckpoint
 from tensorflow.keras.models import load_model
 import h5py
+import pandas as pd
 
 import sys
 from multiprocessing import freeze_support
@@ -20,6 +21,8 @@ from pathlib import Path
 import importlib.resources
 from tensorflow.keras.layers import ReLU
 import importlib
+
+import tempfile
 
 try:
     from gooey import Gooey, local_resource_path
@@ -46,8 +49,11 @@ import sys
 from argparse import HelpFormatter
 import os
 
+from psm_utils.io.peptide_record import peprec_to_proforma
 from psm_utils.psm import PSM
 from psm_utils.psm_list import PSMList
+from psm_utils.io import read_file
+from psm_utils.io import write_file
 
 config = ConfigProto()
 config.gpu_options.allow_growth = True
@@ -170,7 +176,7 @@ def retrain(
         plot_results=False,
         write_csv_results=False,
         freeze_after_concat=0,
-        outpath="./",
+        outpath=tempfile.TemporaryDirectory(),
         a_blocks=[3],
         a_kernel=[2,4,8],
         a_max_pool=[2],
@@ -214,14 +220,16 @@ def retrain(
 
     # catch above list creation for PSM list
     if type(datasets) == list:
-        datasets = dict([(d.split(".")[:-1].join(""),d) for d in datasets])
-        for dataset_name, file_name in dataset_names.items():
+        datasets = dict([(".".join(d.split(".")[:-1]),d) for d in datasets])
+        for dataset_name, file_name in datasets.items():
             list_of_psms = []
             datasets[dataset_name] = pd.read_csv(file_name)
+            datasets[dataset_name].fillna("",inplace=True)
             datasets[dataset_name].rename(columns = {'observed_retention_time':'tr', 'peptide':'seq'}, inplace = True)
             
             if remove_repeats:
-                datasets[dataset_name].sort_values("tr",inplace=True).drop_duplicates(by=["seq","modifications"],keep="first",inplace=True)
+                datasets[dataset_name].sort_values("tr",inplace=True)
+                datasets[dataset_name].drop_duplicates(["seq","modifications"],keep="first",inplace=True)
 
             for seq,mod,id,tr in zip(datasets[dataset_name]["seq"],datasets[dataset_name]["modifications"],datasets[dataset_name].index,datasets[dataset_name]["tr"]):
                 list_of_psms.append(PSM(peptidoform=peprec_to_proforma(seq,mod),spectrum_id=id,retention_time=tr))
@@ -249,8 +257,6 @@ def retrain(
         df = cnn_functions.get_feat_df(psm_list=psm_list,costum_modification_file=costum_modification_file)
 
         correction_factor = 1.0
-
-        print(df)
 
         df_train,df_test = cnn_functions.train_test(df,ratio_train=ratio_test)
         df_train,df_valid = cnn_functions.train_test(df_train,ratio_train=ratio_valid)
@@ -407,15 +413,15 @@ def retrain(
     else:
         return mods_loc_optimized_all[0]
 
-@Gooey(
-    program_name="DeepLC re-tR-ainer",
-    default_size=(720, 790),
-    monospace_display=True
-)
+#@Gooey(
+#    program_name="DeepLC re-tR-ainer",
+#    default_size=(720, 790),
+#    monospace_display=True
+#)
 def main():
     argu = parse_arguments()
     retrain(**vars(argu))
     
 
 if __name__ == "__main__":
-    main()
+    Gooey(main)()
