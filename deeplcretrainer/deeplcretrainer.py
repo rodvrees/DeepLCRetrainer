@@ -176,7 +176,7 @@ def retrain(
         plot_results=False,
         write_csv_results=False,
         freeze_after_concat=0,
-        outpath=tempfile.TemporaryDirectory(),
+        outpath=tempfile.TemporaryDirectory().name,
         a_blocks=[3],
         a_kernel=[2,4,8],
         a_max_pool=[2],
