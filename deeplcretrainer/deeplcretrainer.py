@@ -176,7 +176,7 @@ def retrain(
         plot_results=False,
         write_csv_results=False,
         freeze_after_concat=0,
-        outpath=tempfile.TemporaryDirectory().name,
+        outpath=None,
         a_blocks=[3],
         a_kernel=[2,4,8],
         a_max_pool=[2],
@@ -192,6 +192,9 @@ def retrain(
         regularizer_val=[0.0000025],
         remove_repeats=True,
     ):
+
+    if not outpath:
+        outpath = tempfile.mkdtemp()
 
     params = list(itertools.product(*[a_blocks,
                                         a_kernel,
