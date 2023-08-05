@@ -339,7 +339,7 @@ def retrain(
                                     callbacks=[mcp_save],
                                     shuffle=True)
 
-            mods_optimized.append(load_model(h5py.File(matched_mod), custom_objects={"<lambda>": lrelu}))
+            mods_optimized.append(load_model(h5py.File(mod_name), custom_objects={"<lambda>": lrelu}))
 
             mods_loc_optimized.append(mod_name)
         
@@ -414,7 +414,7 @@ def retrain(
     if len(mods_loc_optimized_all) == 1:
         return mods_loc_optimized_all[0]
     else:
-        return mods_loc_optimized_all[0]
+        return mods_loc_optimized_all
 
 #@Gooey(
 #    program_name="DeepLC re-tR-ainer",
