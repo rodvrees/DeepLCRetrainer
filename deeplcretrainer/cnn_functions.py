@@ -718,8 +718,8 @@ def train_test(df,
 
     random.shuffle(unique_gene_ids)
 
-    ids_train = set(unique_gene_ids[0:int(len(unique_gene_ids)*ratio_train)])
-    ids_test = set(unique_gene_ids[int(len(unique_gene_ids)*ratio_train)+1:])
+    ids_train = list(set(unique_gene_ids[0:int(len(unique_gene_ids)*ratio_train)]))
+    ids_test = list(set(unique_gene_ids[int(len(unique_gene_ids)*ratio_train)+1:]))
 
     df_train = df.loc[ids_train]
     df_test = df.loc[ids_test]
