@@ -176,7 +176,7 @@ def retrain(
         plot_results=False,
         write_csv_results=False,
         freeze_after_concat=0,
-        outpath=tempfile.TemporaryDirectory().name,
+        outpath=None,
         a_blocks=[3],
         a_kernel=[2,4,8],
         a_max_pool=[2],
@@ -192,6 +192,9 @@ def retrain(
         regularizer_val=[0.0000025],
         remove_repeats=True,
     ):
+
+    if not outpath:
+        outpath = tempfile.mkdtemp()
 
     params = list(itertools.product(*[a_blocks,
                                         a_kernel,
@@ -336,7 +339,7 @@ def retrain(
                                     callbacks=[mcp_save],
                                     shuffle=True)
 
-            mods_optimized.append(load_model(h5py.File(matched_mod), custom_objects={"<lambda>": lrelu}))
+            mods_optimized.append(load_model(h5py.File(mod_name), custom_objects={"<lambda>": lrelu}))
 
             mods_loc_optimized.append(mod_name)
         
@@ -411,7 +414,7 @@ def retrain(
     if len(mods_loc_optimized_all) == 1:
         return mods_loc_optimized_all[0]
     else:
-        return mods_loc_optimized_all[0]
+        return mods_loc_optimized_all
 
 #@Gooey(
 #    program_name="DeepLC re-tR-ainer",
