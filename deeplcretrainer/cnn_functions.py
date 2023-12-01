@@ -330,7 +330,7 @@ def add_count_aa(df):
 
 def get_feat_df(df=None,psm_list=None,aa_comp={},costum_modification_file=None,num_cores=False,ignore_mods=False,standard_feat = False):
     if not num_cores: num_cores = multiprocessing.cpu_count()
-    num_cores = 1
+    # num_cores = 1
     if costum_modification_file:
         if type(costum_modification_file) == list:
             costum_modification_file = costum_modification_file[0]
