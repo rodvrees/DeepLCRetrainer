@@ -43,6 +43,7 @@ from tensorflow.keras.models import Model
 
 try:
     from matplotlib import pyplot as plt
+    import matplotlib
     matplotlib.use("Agg")
 except ImportError:
     _has_matplotlib = False
