@@ -14,25 +14,22 @@ __license__ = "Apache License, Version 2.0"
 __maintainer__ = ["Robbin Bouwmeester", "Ralf Gabriels"]
 __email__ = ["Robbin.Bouwmeester@ugent.be", "Ralf.Gabriels@ugent.be"]
 
-from tensorflow.compat.v1 import ConfigProto
-from tensorflow.compat.v1 import InteractiveSession
-from tensorflow.keras.callbacks import ModelCheckpoint
-from tensorflow.keras.models import load_model
-import h5py
-import pandas as pd
-
-import sys
-from multiprocessing import freeze_support
-from pathlib import Path
-import importlib.resources
-from tensorflow.keras.layers import ReLU
-import importlib
-
+import hashlib
+import itertools
+import os
 import tempfile
 
+import h5py
+import pandas as pd
+from psm_utils.io.peptide_record import peprec_to_proforma
+from psm_utils.psm import PSM
+from psm_utils.psm_list import PSMList
+from tensorflow.compat.v1 import ConfigProto, InteractiveSession
+from tensorflow.keras.callbacks import ModelCheckpoint
+from tensorflow.keras.models import load_model
+
 try:
-    from gooey import Gooey, local_resource_path
-    from gooey import GooeyParser
+    from gooey import Gooey, GooeyParser
 except ImportError:
 
     def Gooey(
@@ -51,28 +48,11 @@ try:
 except ImportError:
     import cnn_functions
 
-import itertools
-import hashlib
-
-import sys
-from argparse import HelpFormatter
-import os
-
-from psm_utils.io.peptide_record import peprec_to_proforma
-from psm_utils.psm import PSM
-from psm_utils.psm_list import PSMList
-from psm_utils.io import read_file
-from psm_utils.io import write_file
-
 config = ConfigProto()
 config.gpu_options.allow_growth = True
 session = InteractiveSession(config=config)
 
 import tensorflow as tf
-
-tf.__version__
-
-from . import __version__
 
 
 def parse_arguments(gui=False):
