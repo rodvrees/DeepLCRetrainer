@@ -9,6 +9,17 @@ readme = "README.md"
 license = {file = "LICENSE"}
 classifiers = ["License :: OSI Approved :: Apache Software License"]
 dynamic = ["version", "description"]
+dependencies = [
+    "numpy",
+    "pandas",
+    "h5py",
+    "psm_utils",
+    "tensorflow",
+]
+
+[project.optional-dependencies]
+gui = ["gooey>=1.0"]
+plot = ["matplotlib"]
 
 [project.urls]
 Home = "https://github.com/RobbinBouwmeester"
