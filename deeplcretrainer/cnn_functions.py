@@ -14,11 +14,8 @@ __license__ = "Apache License, Version 2.0"
 __maintainer__ = ["Robbin Bouwmeester", "Ralf Gabriels"]
 __email__ = ["Robbin.Bouwmeester@ugent.be", "Ralf.Gabriels@ugent.be"]
 
-import matplotlib
 import numpy as np
 import pandas as pd
-
-matplotlib.use("Agg")
 
 import math
 import multiprocessing
@@ -46,6 +43,7 @@ from tensorflow.keras.models import Model
 
 try:
     from matplotlib import pyplot as plt
+    matplotlib.use("Agg")
 except ImportError:
     _has_matplotlib = False
 else:
