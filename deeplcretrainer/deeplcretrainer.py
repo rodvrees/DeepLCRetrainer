@@ -345,8 +345,9 @@ def retrain(
                 if param_hash in mod_name_t:
                     matched_mod = mod_name_t
                     break
-
-            if len(matched_mod) > 0:
+            if len(matched_mod) == 0 and len(mods_transfer_learning) > 0:
+                continue
+            elif len(matched_mod) > 0:
                 freeze_after_concat_t = int(freeze_after_concat)
                 model = load_model(
                     h5py.File(matched_mod), custom_objects={"<lambda>": lrelu}
